@@ -208,7 +208,8 @@
     });
     return executableCode;
   };
-  VariableCheckGrader.prototype.grade = function(studentcode) {
+  VariableCheckGrader.prototype.grade = function(options, studentcode) {
+    options = options || {};
     var parson = this.parson,
         that = this,
         feedback = "",
@@ -332,14 +333,15 @@
     return result.variables.commands.v;
   };
   // grade the student solution
-  TurtleGrader.prototype.grade = function() {
+  TurtleGrader.prototype.grade = function(options) {
+    options = options || {};
     // set the correct canvas where the turtle should draw
     Sk.canvas = this.parson.options.turtleStudentCanvas || "studentCanvas";
     // Pass the grading on to either the LangTranslationGrader or VariableChecker
     if (this.parson.options.executable_code) {
-      return new LanguageTranslationGrader(this.parson).grade();
+      return new LanguageTranslationGrader(this.parson).grade(options);
     } else {
-      return new VariableCheckGrader(this.parson).grade();
+      return new VariableCheckGrader(this.parson).grade(options);
     }
   };
 
@@ -354,7 +356,8 @@
   // copy the python executor from VariableCheckGrager
   UnitTestGrader.prototype._python_exec = VariableCheckGrader.prototype._python_exec;
   // do the grading
-  UnitTestGrader.prototype.grade = function(studentcode) {
+  UnitTestGrader.prototype.grade = function(options, studentcode) {
+    options = options || {};
     var success = true,
         parson = this.parson,
         unittests = parson.options.unittests,
@@ -439,7 +442,8 @@
       "^.*\}\s*$": "block"
     }
   };
-  LanguageTranslationGrader.prototype.grade = function() {
+  LanguageTranslationGrader.prototype.grade = function(options) {
+    options = options || {};
     var student_code = this.parson.normalizeIndents(
                           this.parson.getModifiedCode("#ul-" + this.parson.options.sortableId));
 
@@ -475,7 +479,7 @@
         // -1 will mean no matching indent was found
         if (item.indent < 0) {
           blockErrors.push(this.parson.translations.no_matching(i + 1));
-          $("#" + item.id).addClass("incorrectIndent");
+          !options.skipHighlight && $("#" + item.id).addClass("incorrectIndent");
           break; // break on error
         }
 
@@ -488,13 +492,13 @@
             topBlock = blocks.pop();
             if (!topBlock) {
               blockErrors.push(this.parson.translations.no_matching_open(i + 1, close[blockClose]));
-              $("#" + item.id).addClass("incorrectPosition");
+              !options.skipHighlight && $("#" + item.id).addClass("incorrectPosition");
             } else if (close[blockClose] !== topBlock.name) { // incorrect closing block
               blockErrors.push(this.parson.translations.block_close_mismatch(i + 1, close[blockClose], topBlock.line, topBlock.name));
-              $("#" + item.id).addClass("incorrectPosition");
+              !options.skipHighlight && $("#" + item.id).addClass("incorrectPosition");
             } else if (student_code[i].indent !== topBlock.indent) { // incorrect indent
               blockErrors.push(this.parson.translations.no_matching(i + 1));
-              $("#" + item.id).addClass("incorrectIndent");
+              !options.skipHighlight && $("#" + item.id).addClass("incorrectIndent");
             }
             prevIndent = topBlock?topBlock.indent:0;
             minIndent = 0;
@@ -519,7 +523,7 @@
           if ((prevIndent && student_code[i].indent !== prevIndent) ||
               student_code[i].indent <= minIndent) {
             blockErrors.push(this.parson.translations.no_matching(i + 1));
-            $("#" + item.id).addClass("incorrectIndent");
+            !options.skipHighlight && $("#" + item.id).addClass("incorrectIndent");
           }
           prevIndent = student_code[i].indent;
         }
@@ -532,7 +536,7 @@
       // create errors for all blocks opened but not closed
       for (i = 0; i < blocks.length; i++) {
         blockErrors.push(this.parson.translations.no_matching_close(blocks[i].line, blocks[i].name));
-        $("#" + blocks[i].item.id).addClass("incorrectPosition");
+        !options.skipHighlight &&  $("#" + blocks[i].item.id).addClass("incorrectPosition");
       }
     }
     // if there were errors in the blocks, give feedback and don't execute the code
@@ -551,9 +555,9 @@
     var code = this._replaceCodelines();
     // run unit tests or variable check grader
     if (this.parson.options.unittests) {
-      return new UnitTestGrader(this.parson).grade(code);
+      return new UnitTestGrader(this.parson).grade(options, code);
     } else {
-      return new VariableCheckGrader(this.parson).grade(code);
+      return new VariableCheckGrader(this.parson).grade(options, code);
     }
   };
   // Replaces codelines in the student's solution with the codelines
@@ -606,7 +610,8 @@
     this.parson = parson;
   };
   graders.LineBasedGrader = LineBasedGrader;
-  LineBasedGrader.prototype.grade = function(elementId) {
+  LineBasedGrader.prototype.grade = function(options, elementId) {
+    options = options || {};
     var parson = this.parson;
     var elemId = elementId || parson.options.sortableId;
     var student_code = parson.normalizeIndents(parson.getModifiedCode("#ul-" + elemId));
@@ -649,7 +654,7 @@
 	    	// it must be a distractor
 	    	// => add to feedback, log, and ignore in LIS computation
 	        wrong_order = true;
-	        lineObject.markIncorrectPosition();
+          !options.skipHighlight && lineObject.markIncorrectPosition();
 	    	incorrectLines.push(lineObject.orig);
 	        lineObject.lisIgnore = true;
 	      } else {
@@ -678,7 +683,7 @@
     			 				    .map(function (lineObject) { return lineObject.position; }));
     $.each(inv, function(_index, lineObjectIndex) {
     	// Highlight the lines that could be moved to fix code as defined by the LIS computation
-        lisStudentCodeLineObjects[lineObjectIndex].markIncorrectPosition();
+        !options.skipHighlight && lisStudentCodeLineObjects[lineObjectIndex].markIncorrectPosition();
         incorrectLines.push(lisStudentCodeLineObjects[lineObjectIndex].orig);
       });
     if (inv.length > 0 || incorrectLines.length > 0) {
@@ -692,11 +697,11 @@
 
     // Check the number of lines in student's code
     if (parson.model_solution.length < student_code.length) {
-      $("#ul-" + elemId).addClass("incorrect");
+      !options.skipHighlight && $("#ul-" + elemId).addClass("incorrect");
       errors.push(parson.translations.lines_too_many());
       log_errors.push({type: "tooManyLines", lines: student_code.length});
     } else if (parson.model_solution.length > student_code.length){
-      $("#ul-" + elemId).addClass("incorrect");
+      !options.skipHighlight && $("#ul-" + elemId).addClass("incorrect");
       errors.push(parson.translations.lines_missing());
       log_errors.push({type: "tooFewLines", lines: student_code.length});
     }
@@ -708,14 +713,14 @@
         var model_line = parson.model_solution[i];
         if (code_line.indent !== model_line.indent &&
              ((!parson.options.first_error_only) || errors.length === 0)) {
-          code_line.markIncorrectIndent();
+          !options.skipHighlight && code_line.markIncorrectIndent();
           errors.push(parson.translations.block_structure(i+1));
           log_errors.push({type: "incorrectIndent", line: (i+1)});
         }
         if (code_line.code == model_line.code &&
              code_line.indent == model_line.indent &&
              errors.length === 0) {
-          code_line.markCorrect();
+          !options.skipHighlight && code_line.markCorrect();
         }
       }
     }
@@ -749,30 +754,40 @@
          return opts;
       }
    };
-   var addToggleableElements = function(widget) {
+   var addToggleableElements = function(widget, states) {
+      states = states || {}
       for (var i = 0; i < widget.modified_lines.length; i++) {
         widget.modified_lines[i]._addToggles();
       }
       // toggleable elements are only enabled for unit tests
       if (!widget.options.unittests && !widget.options.vartests) { return; }
-      var handlers = $.extend(defaultToggleTypeHandlers, widget.options.toggleTypeHandlers),
-          context = $("#" + widget.options.sortableId + ", #" + widget.options.trashId);
-      $(".jsparson-toggle", context).each(function(index, item) {
-         var type = $(item).data("type");
-         if (!type) { return; }
-         var handler = handlers[type],
-             jspOptions;
-         if ($.isFunction(handler)) {
+      var handlers = $.extend(defaultToggleTypeHandlers, widget.options.toggleTypeHandlers);
+      var trashContext = $("#" + widget.options.trashId);
+      var sortableContext = $("#" + widget.options.sortableId);
+
+      var updateToggles = function (context, states) {
+        $(".jsparson-toggle", context).each(function(index, item) {
+          if (states && states[index]) {
+            $(item).text(states[index]);
+          }
+          var type = $(item).data("type");
+          if (!type) { return; }
+          var handler = handlers[type],
+            jspOptions;
+          if ($.isFunction(handler)) {
             jspOptions = handler($(item));
-         } else {
+          } else {
             jspOptions = handler;
-         }
-         if (jspOptions && $.isArray(jspOptions)) {
+          }
+          if (jspOptions && $.isArray(jspOptions)) {
             $(item).attr("data-jsp-options", JSON.stringify(jspOptions));
-         }
-      });
+          }
+        });
+      };
+      updateToggles(trashContext, states.input);
+      updateToggles(sortableContext, states.output);
       // register a click handler for all the toggleable elements (and unregister existing)
-      context.off("click", ".jsparson-toggle").on("click", ".jsparson-toggle", function() {
+      trashContext.add(sortableContext).off("click", ".jsparson-toggle").on("click", ".jsparson-toggle", function() {
          var $this = $(this),
              curVal = $this.text(),
              choices = $this.data("jsp-options"),
@@ -1266,7 +1281,7 @@
    };
 
    ParsonsWidget.prototype.colorFeedback = function(elemId) {
-     return new LineBasedGrader(this).grade(elemId);
+     return new LineBasedGrader(this).grade(null, elemId);
    };
 
 
@@ -1340,11 +1355,12 @@
        addToggleableElements(this);
    };
 
-   ParsonsWidget.prototype.createHTMLFromHashes = function(solutionHash, trashHash) {
+   ParsonsWidget.prototype.createHTMLFromHashes = function(solutionHash, trashHash, toggleStates) {
        var solution = this.hashToIDList(solutionHash);
        var trash = this.hashToIDList(trashHash);
        this.createHTMLFromLists(solution, trash);
        this.updateIndentsFromHash(solutionHash);
+       addToggleableElements(this, toggleStates);
    };
 
     ParsonsWidget.prototype.updateHTMLIndent = function(codelineID) {
@@ -1438,6 +1454,28 @@
      this.addLogEntry({type: 'init', time: new Date(), bindings: bindings});
    };
 
+    ParsonsWidget.prototype.getStudentCode = function () {
+     var repeatStringNumTimes = function (string, times) {
+       var repeatedString = "";
+       while (times > 0) {
+         repeatedString += string;
+         times--;
+       }
+       return repeatedString;
+     };
+
+     var student_code = this.normalizeIndents(
+       this.getModifiedCode("#ul-" + this.options.sortableId));
+
+     var lines = [];
+     var sortableContainer = $("#ul-" + this.options.sortableId);
+     $.each(student_code, function(index, item) {
+       var text = sortableContainer.find("#" + item.id).text();
+       var indents = repeatStringNumTimes("  ", item.indent);
+       lines.push(indents + text);
+     });
+     return lines.join('\n');
+   };
 
    window['ParsonsWidget'] = ParsonsWidget;
  }
