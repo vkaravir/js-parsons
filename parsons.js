@@ -217,7 +217,9 @@
         all_passed = true;
     $.each(parson.options.vartests, function(index, testdata) {
       var student_code = studentcode || that._codelinesAsString();
-      var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "");
+      var isTurtle = parson.options.grader.name === "TurtleGrader";
+      var clearCode = isTurtle && options.skipHighlight ? "myTurtle._turtle.reset()" : "";
+      var executableCode = (testdata.initcode || "") + "\n" + student_code + "\n" + (testdata.code || "") + "\n" + clearCode;
       var variables, expectedVals;
 
       if ('variables' in testdata) {
