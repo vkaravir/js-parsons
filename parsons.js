@@ -1399,8 +1399,15 @@
        $("#" + this.options.sortableId).html(html);
      }
 
-     if (window.prettyPrint && (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint)) {
-       prettyPrint();
+     // allow to use https://github.com/google/code-prettify/
+     var prettyPrint = window.PR.prettyPrint || window.prettyPrint;
+     if (prettyPrint && (typeof(this.options.prettyPrint) === "undefined" || this.options.prettyPrint)) {
+       if (this.options.trashId) {
+         prettyPrint(null, $("#" + this.options.trashId).get(0));
+       }
+       if (this.options.sortableId) {
+         prettyPrint(null, $("#" + this.options.sortableId).get(0));
+       }
      }
 
      var that = this;
