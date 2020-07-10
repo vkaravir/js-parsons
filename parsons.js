@@ -148,6 +148,14 @@
   // Formats a JavaScript variable to the corresponding Python value *and*
   // formats a Skulpt variable to the corresponding Python value
   VariableCheckGrader.prototype.formatVariableValue = function(varValue) {
+    var processArray = function(array, formatVariableValueFunc) {
+      var result = [];
+      for (var i = 0; i < array.length; i++) {
+        result.push(formatVariableValueFunc(array[i]));
+      }
+      return '[' + result.join(', ') + ']';
+    }
+
     var varType = typeof varValue;
     if (varType === "undefined" || varValue === null) {
       return "None";
@@ -156,7 +164,7 @@
     } else if (varType === "boolean") { // Python booleans with capital first letter
       return varValue?"True":"False";
     } else if ($.isArray(varValue)) { // JavaScript arrays
-      return '[' + varValue.join(', ') + ']';
+      return processArray(varValue, this.formatVariableValue);
     } else if (varType === "object" && varValue.tp$name === "number") { // Python numbers
       return varValue.v;
     } else if (varType === "object" && varValue.tp$name === "NoneType") { // None
@@ -166,7 +174,7 @@
     } else if (varType === "object" && varValue.tp$name === "str") { // Python strings
       return '"' + varValue.v + '"';
     } else if (varType === "object" && varValue.tp$name === "list") { // Python lists
-      return '[' + varValue.v.join(', ') + ']';
+      return processArray(varValue.v, this.formatVariableValue);
     } else {
       return varValue;
     }
