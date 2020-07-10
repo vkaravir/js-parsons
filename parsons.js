@@ -1240,6 +1240,18 @@
      return lines_to_return;
    };
 
+    ParsonsWidget.prototype.getLineByOrig = function(orig) {
+      var line;
+      for (var i = 0; i < this.modified_lines.length; i++) {
+        var current_line = this.modified_lines[i];
+        if (current_line.orig === orig) {
+          line = current_line;
+          break;
+        }
+      }
+      return line;
+    };
+
    ParsonsWidget.prototype.hashToIDList = function(hash) {
      var lines = [];
      var lineValues;
@@ -1255,7 +1267,7 @@
      var ids = [];
      for (var i = 0; i < h.length; i++) {
        lineValues = h[i].split("_");
-       ids.push(this.modified_lines[lineValues[0]].id);
+       ids.push(this.getLineByOrig(parseInt(lineValues[0], 10)).id);
      }
      return ids;
    };
@@ -1273,8 +1285,9 @@
      var ids = [];
      for (var i = 0; i < h.length; i++) {
          lineValues = h[i].split("_");
-         this.modified_lines[lineValues[0]].indent = Number(lineValues[1]);
-         this.updateHTMLIndent(this.modified_lines[lineValues[0]].id);
+         var line = this.getLineByOrig(parseInt(lineValues[0], 10));
+         line.indent = Number(lineValues[1]);
+         this.updateHTMLIndent(line.id);
      }
      return ids;
    };
