@@ -2,6 +2,14 @@
 
    // regexp used for trimming
    var trimRegexp = /^\s*(.*?)\s*$/;
+   function escapeHtml(unsafe) {
+     return unsafe
+       .replace(/&/g, "&amp;")
+       .replace(/</g, "&lt;")
+       .replace(/>/g, "&gt;")
+       .replace(/"/g, "&quot;")
+       .replace(/'/g, "&#039;");
+   }
    var translations = {
      fi: {
        trash_label: 'Raahaa rivit ohjelmaasi tästä',
@@ -1396,7 +1404,7 @@
 
 
     ParsonsWidget.prototype.codeLineToHTML = function(codeline) {
-        return '<li id="' + codeline.id + '" class="prettyprint lang-py">' + codeline.code + '<\/li>';
+        return '<li id="' + codeline.id + '" class="prettyprint lang-py">' + escapeHtml(codeline.code) + '<\/li>';
     };
 
     ParsonsWidget.prototype.codeLinesToHTML = function(codelineIDs, destinationID) {
